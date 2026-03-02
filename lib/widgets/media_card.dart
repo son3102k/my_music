@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 enum MediaCardVariant { album, playlist, artist }
 
@@ -29,11 +30,40 @@ class MediaCard extends StatefulWidget {
   State<MediaCard> createState() => _MediaCardState();
 }
 
-class _MediaCardState extends State<MediaCard> {
+class _MediaCardState extends State<MediaCard> with AutomaticKeepAliveClientMixin {
   bool _isHovered = false;
 
   @override
+  bool get wantKeepAlive => true;
+
+  Widget _buildImage() {
+    final errBuilder = (BuildContext context, Object error, StackTrace? stackTrace) {
+      return Container(
+        color: Theme.of(context).colorScheme.surface,
+        child: Icon(Icons.music_note,
+            size: 32, color: Theme.of(context).colorScheme.primary),
+      );
+    };
+
+    if (widget.imageUrl.startsWith('http')) {
+      return Image(
+        image: CachedNetworkImageProvider(widget.imageUrl),
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (context, error, stackTrace) => errBuilder(context, error, stackTrace),
+      );
+    } else {
+      return Image.asset(
+        widget.imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: errBuilder,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // for AutomaticKeepAliveClientMixin
     final isCircle = widget.variant == MediaCardVariant.artist;
     final radius = isCircle ? 9999.0 : 8.0;
 
@@ -59,6 +89,7 @@ class _MediaCardState extends State<MediaCard> {
                   : null,
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Stack(
@@ -71,18 +102,7 @@ class _MediaCardState extends State<MediaCard> {
                           borderRadius: BorderRadius.circular(radius),
                         ),
                         clipBehavior: Clip.antiAlias,
-                        child: Image.asset(
-                          widget.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Theme.of(context).colorScheme.surface,
-                              child: Icon(Icons.music_note,
-                                  size: 32,
-                                  color: Theme.of(context).colorScheme.primary),
-                            );
-                          },
-                        ),
+                        child: _buildImage(),
                       ),
                     ),
                     if (_isHovered && widget.onPlayPressed != null)

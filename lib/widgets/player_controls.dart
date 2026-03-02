@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide RepeatMode;
 
-enum RepeatMode { off, all, one }
+import '../models/repeat_mode.dart';
 
 class PlayerControls extends StatelessWidget {
   final bool isPlaying;

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../widgets/nav_item.dart';
 import 'home_screen.dart';
@@ -24,6 +23,7 @@ class _AppShellState extends State<AppShell> {
     ProfileScreen(),
   ];
 
+
   void _onTab(int idx) {
     setState(() {
       _currentIndex = idx;
@@ -33,7 +33,10 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: Container(
         color: Theme.of(context).colorScheme.surface,
         height: 60,

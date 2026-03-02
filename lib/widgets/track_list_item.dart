@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class TrackListItem extends StatefulWidget {
   final int number;
@@ -32,11 +33,46 @@ class TrackListItem extends StatefulWidget {
   State<TrackListItem> createState() => _TrackListItemState();
 }
 
-class _TrackListItemState extends State<TrackListItem> {
+class _TrackListItemState extends State<TrackListItem> with AutomaticKeepAliveClientMixin {
   bool _isHovered = false;
 
   @override
+  bool get wantKeepAlive => true;
+
+  Widget _buildImage() {
+    final errBuilder = (BuildContext context, Object error, StackTrace? stackTrace) {
+      final colors = Theme.of(context).colorScheme;
+      return Container(
+        width: 48,
+        height: 48,
+        color: colors.surface,
+        child: Icon(Icons.music_note, color: colors.primary),
+      );
+    };
+
+    if (widget.imageUrl.startsWith('http')) {
+      return Image(
+        image: CachedNetworkImageProvider(widget.imageUrl),
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (context, error, stackTrace) => errBuilder(context, error, stackTrace),
+      );
+    } else {
+      return Image.asset(
+        widget.imageUrl,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: errBuilder,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // for AutomaticKeepAliveClientMixin
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
@@ -76,20 +112,7 @@ class _TrackListItemState extends State<TrackListItem> {
               // Album art
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: Image.asset(
-                  widget.imageUrl,
-                  width: 48,
-                  height: 48,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 48,
-                      height: 48,
-                      color: colors.surface,
-                      child: Icon(Icons.music_note, color: colors.primary),
-                    );
-                  },
-                ),
+                child: _buildImage(),
               ),
               const SizedBox(width: 12),
               // Title and artist

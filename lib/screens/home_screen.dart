@@ -4,6 +4,7 @@ import 'dart:math';
 
 import '../models/song.dart';
 import '../models/playlist.dart';
+import '../data/sample_songs.dart';
 import '../providers/playback_notifier.dart';
 import '../theme/app_colors.dart';
 import '../theme/theme_notifier.dart';
@@ -11,9 +12,31 @@ import '../widgets/bottom_playback_bar.dart';
 import '../widgets/media_card.dart';
 import '../widgets/track_list_item.dart';
 import 'player_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // pre-cache the recently played songs (first 4) so they don't flash
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final songs = _songs.take(4);
+      for (var song in songs) {
+        if (song.albumArt.startsWith('http')) {
+          precacheImage(CachedNetworkImageProvider(song.albumArt), context);
+        } else {
+          precacheImage(AssetImage(song.albumArt), context);
+        }
+      }
+    });
+  }
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
@@ -22,19 +45,24 @@ class HomeScreen extends StatelessWidget {
     return 'Good evening';
   }
 
-  List<Song> get _songs => const [
-        Song(title: 'Track One', artist: 'Artist A', albumArt: 'assets/album_placeholder.png'),
-        Song(title: 'Track Two', artist: 'Artist B', albumArt: 'assets/album_placeholder.png'),
-        Song(title: 'Track Three', artist: 'Artist C', albumArt: 'assets/album_placeholder.png'),
-        Song(title: 'Track Four', artist: 'Artist D', albumArt: 'assets/album_placeholder.png'),
-        Song(title: 'Track Five', artist: 'Artist E', albumArt: 'assets/album_placeholder.png'),
-      ];
+  List<Song> get _songs => sampleSongs;
 
   List<Playlist> get _playlists => [
         Playlist(name: 'Daily Mix 1', songs: _songs),
         Playlist(name: 'Daily Mix 2', songs: _songs),
         Playlist(name: 'Daily Mix 3', songs: _songs),
       ];
+
+  void _playAndCache(BuildContext context, PlaybackNotifier playback, Song song) {
+    // send the full list so user can skip tracks
+    playback.playSong(song, queue: _songs);
+    // pre-cache the image right away so it appears instantly later
+    if (song.albumArt.startsWith('http')) {
+      precacheImage(CachedNetworkImageProvider(song.albumArt), context);
+    } else {
+      precacheImage(AssetImage(song.albumArt), context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,25 +91,29 @@ class HomeScreen extends StatelessWidget {
               bottom: 140,
             ),
             children: [
-              // Header with greeting and theme switcher
+              // Header with greeting and theme switcher on same row
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      _getGreeting(),
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 20),
-                    // Theme switcher
+                    Expanded(
+                      child: Text(
+                          _getGreeting(),
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                      ),
+                    // Smaller theme buttons aligned right
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        _themeButton(context, ThemeVariant.spotify, 'Spotify'),
-                        _themeButton(context, ThemeVariant.purple, 'Purple'),
-                        _themeButton(context, ThemeVariant.blue, 'Blue'),
-                        _themeButton(context, ThemeVariant.orange, 'Orange'),
+                        _themeButton(context, ThemeVariant.spotify, 'S'),
+                        const SizedBox(width: 8),
+                        _themeButton(context, ThemeVariant.purple, 'P'),
+                        const SizedBox(width: 8),
+                        _themeButton(context, ThemeVariant.blue, 'B'),
+                        const SizedBox(width: 8),
+                        _themeButton(context, ThemeVariant.orange, 'O'),
                       ],
                     ),
                   ],
@@ -110,8 +142,8 @@ class HomeScreen extends StatelessWidget {
                     imageUrl: song.albumArt,
                     variant: MediaCardVariant.album,
                     imageSize: 120,
-                    onTap: () => playback.playSong(song),
-                    onPlayPressed: () => playback.playSong(song),
+                    onTap: () => _playAndCache(context, playback, song),
+                    onPlayPressed: () => _playAndCache(context, playback, song),
                   );
                 },
               ),
@@ -134,7 +166,7 @@ class HomeScreen extends StatelessWidget {
                   artist: song.artist,
                   duration: '${Random().nextInt(5)}:${Random().nextInt(60).toString().padLeft(2, '0')}',
                   imageUrl: song.albumArt,
-                  onTap: () => playback.playSong(song),
+                  onTap: () => _playAndCache(context, playback, song),
                   onLikePressed: () {},
                 );
               }),
@@ -164,12 +196,12 @@ class HomeScreen extends StatelessWidget {
                     imageSize: 120,
                     onTap: () {
                       if (playlist.songs.isNotEmpty) {
-                        playback.playSong(playlist.songs.first);
+                        _playAndCache(context, playback, playlist.songs.first);
                       }
                     },
                     onPlayPressed: () {
                       if (playlist.songs.isNotEmpty) {
-                        playback.playSong(playlist.songs.first);
+                        _playAndCache(context, playback, playlist.songs.first);
                       }
                     },
                   );
@@ -256,10 +288,11 @@ class HomeScreen extends StatelessWidget {
         context.read<ThemeNotifier>().setTheme(variant);
       },
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: color,

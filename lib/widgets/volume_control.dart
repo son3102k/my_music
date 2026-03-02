@@ -23,6 +23,15 @@ class _VolumeControlState extends State<VolumeControl> {
     _previousVolume = widget.value > 0 ? widget.value : 50;
   }
 
+  @override
+  void didUpdateWidget(covariant VolumeControl oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // keep track of the most recent non-zero volume so mute/unmute works
+    if (widget.value > 0) {
+      _previousVolume = widget.value;
+    }
+  }
+
   IconData _getVolumeIcon(double value) {
     if (value == 0) return Icons.volume_off;
     if (value <= 50) return Icons.volume_down;

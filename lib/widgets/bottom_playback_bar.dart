@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/playback_notifier.dart';
@@ -9,6 +10,37 @@ class BottomPlaybackBar extends StatelessWidget {
   final VoidCallback onTap;
 
   const BottomPlaybackBar({Key? key, required this.onTap}) : super(key: key);
+
+  Widget _buildAlbumImage(String url) {
+    final errBuilder = (BuildContext context, Object error, StackTrace? stackTrace) {
+      return Container(
+        width: 48,
+        height: 48,
+        color: Theme.of(context).colorScheme.surface,
+        child: Icon(Icons.music_note,
+            color: Theme.of(context).colorScheme.primary),
+      );
+    };
+
+    if (url.startsWith('http')) {
+      return Image(
+        image: CachedNetworkImageProvider(url),
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (context, error, stackTrace) => errBuilder(context, error, stackTrace),
+      );
+    } else {
+      return Image.asset(
+        url,
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: errBuilder,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,12 +81,7 @@ class BottomPlaybackBar extends StatelessWidget {
                       const SizedBox(width: 8),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
-                        child: Image(
-                          image: AssetImage(song.albumArt),
-                          width: 48,
-                          height: 48,
-                          fit: BoxFit.cover,
-                        ),
+                        child: _buildAlbumImage(song.albumArt),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -62,21 +89,29 @@ class BottomPlaybackBar extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(song.title,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
-                                    ?.copyWith(fontWeight: FontWeight.bold)),
-                            Text(song.artist,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.color
-                                            ?.withOpacity(0.7))),
+                            Text(
+                              song.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              song.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color
+                                          ?.withOpacity(0.7)),
+                            ),
                           ],
                         ),
                       ),

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../theme/theme_notifier.dart';
 import '../models/song.dart';
 import '../providers/playback_notifier.dart';
+import '../providers/volume_notifier.dart';
 import '../widgets/album_art.dart';
 import '../widgets/track_info.dart';
 import '../widgets/player_controls.dart';
@@ -32,6 +34,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final playback = context.watch<PlaybackNotifier>();
     final song = playback.currentSong ??
         const Song(title: 'Unknown', artist: 'Unknown', albumArt: 'assets/album_placeholder.png');
+
+    ImageProvider albumImage;
+    if (song.albumArt.startsWith('http')) {
+      albumImage = CachedNetworkImageProvider(song.albumArt);
+    } else {
+      albumImage = AssetImage(song.albumArt);
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -70,8 +79,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
               if (details.primaryVelocity == null) return;
               if (details.primaryVelocity! < 0) {
                 // swipe left = next
+                playback.next();
               } else if (details.primaryVelocity! > 0) {
                 // swipe right = previous
+                playback.previous();
               }
             },
             child: SafeArea(
@@ -83,29 +94,36 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const SizedBox(height: 8),
-                      AlbumArt(image: AssetImage(song.albumArt), size: MediaQuery.of(context).size.width * 0.8),
+                      AlbumArt(
+                        image: albumImage,
+                        size: MediaQuery.of(context).size.width * 0.8,
+                        spin: playback.isPlaying,
+                      ),
                       const SizedBox(height: 24),
                       TrackInfo(title: song.title, artist: song.artist),
                       const SizedBox(height: 16),
                       // progress bar with time
                       ProgressBar(
                         value: playback.position,
-                        max: 1.0,
+                        buffer: playback.buffer,
+                        max: playback.trackDuration,
                         onChanged: (v) => _onSeek(v, playback),
                       ),
                       const SizedBox(height: 24),
                       PlayerControls(
                         isPlaying: playback.isPlaying,
+                        isShuffled: playback.isShuffled,
+                        repeatMode: playback.repeatMode,
                         onPlayPause: playback.togglePlayPause,
-                        onNext: () {},
-                        onPrevious: () {},
-                        onShuffle: () {},
-                        onRepeat: () {},
+                        onNext: playback.next,
+                        onPrevious: playback.previous,
+                        onShuffle: playback.toggleShuffle,
+                        onRepeat: playback.toggleRepeat,
                       ),
                       const SizedBox(height: 24),
                       VolumeControl(
-                        value: 50,
-                        onChanged: (v) {},
+                        value: context.watch<VolumeNotifier>().volume,
+                        onChanged: (v) => context.read<VolumeNotifier>().setVolume(v),
                       ),
                     ],
                   ),

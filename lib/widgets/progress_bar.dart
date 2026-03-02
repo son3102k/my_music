@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 class ProgressBar extends StatefulWidget {
   final double value; // 0-1
+  final double buffer; // 0-1 amount downloaded/buffered
   final double max;
   final Function(double) onChanged;
 
   const ProgressBar({
     Key? key,
     required this.value,
+    this.buffer = 0.0,
     this.max = 1.0,
     required this.onChanged,
   }) : super(key: key);
@@ -45,6 +47,7 @@ class _ProgressBarState extends State<ProgressBar> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final currentValue = _isDragging ? _dragValue : widget.value;
+    final bufferValue = widget.buffer.clamp(0.0, 1.0);
 
     return MouseRegion(
       onEnter: (_) => setState(() {}),
@@ -71,39 +74,44 @@ class _ProgressBarState extends State<ProgressBar> {
         child: Column(
           children: [
             SizedBox(
-              height: 20,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Background bar
-                  Container(
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colors.secondary,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  // Progress bar
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(
-                      widthFactor: currentValue,
-                      child: Container(
+              height: 24,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final barWidth = constraints.maxWidth;
+                  final thumbPos = (barWidth * currentValue).clamp(0.0, barWidth);
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Background bar
+                      Container(
                         height: 4,
+                        decoration: BoxDecoration(
+                          color: colors.secondary,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      // Buffered amount bar (grey)
+                      Container(
+                        height: 4,
+                        width: barWidth * bufferValue,
+                        decoration: BoxDecoration(
+                          color: Colors.grey,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      // Progress bar (played)
+                      Container(
+                        height: 4,
+                        width: barWidth * currentValue,
                         decoration: BoxDecoration(
                           color: colors.primary,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                    ),
-                  ),
-                  // Hover thumb
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(
-                      widthFactor: currentValue,
-                      child: Transform.translate(
-                        offset: const Offset(6, 0),
+                      // Thumb
+                      Positioned(
+                        left: thumbPos - 6,
+                        top: -4,
                         child: Container(
                           width: 12,
                           height: 12,
@@ -119,9 +127,9 @@ class _ProgressBarState extends State<ProgressBar> {
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
             const SizedBox(height: 8),
