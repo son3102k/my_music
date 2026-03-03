@@ -4,7 +4,6 @@ import 'dart:math';
 
 import '../models/song.dart';
 import '../models/playlist.dart';
-import '../data/sample_songs.dart';
 import '../providers/playback_notifier.dart';
 import '../theme/app_colors.dart';
 import '../theme/theme_notifier.dart';
@@ -45,7 +44,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Good evening';
   }
 
-  List<Song> get _songs => sampleSongs;
+  List<Song> get _songs {
+    // read from playback library once initialized
+    final playback = context.read<PlaybackNotifier>();
+    return playback.allSongs;
+  }
 
   List<Playlist> get _playlists => [
         Playlist(name: 'Daily Mix 1', songs: _songs),
@@ -62,6 +65,13 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       precacheImage(AssetImage(song.albumArt), context);
     }
+  }
+
+  String _formatDuration(double seconds) {
+    final int totalSeconds = seconds.toInt();
+    final int minutes = totalSeconds ~/ 60;
+    final int secs = totalSeconds % 60;
+    return '${minutes}:${secs.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -164,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   number: index + 1,
                   title: song.title,
                   artist: song.artist,
-                  duration: '${Random().nextInt(5)}:${Random().nextInt(60).toString().padLeft(2, '0')}',
+                  duration: _formatDuration(song.duration),
                   imageUrl: song.albumArt,
                   onTap: () => _playAndCache(context, playback, song),
                   onLikePressed: () {},

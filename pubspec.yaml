@@ -38,6 +38,10 @@ dependencies:
   cached_network_image: ^3.2.3
   path_provider: ^2.0.15
   volume_controller: ^3.4.2
+  shared_preferences: ^2.2.2
+  sqflite: ^2.3.0
+  permission_handler: ^11.4.0
+  just_audio: ^0.9.38
 
 dev_dependencies:
   flutter_test:
